@@ -1,45 +1,36 @@
-# import the opencv library
+# Import libraries
 import cv2
 import numpy as np
 
-# define a video capture object
-cam = cv2.VideoCapture(0)
-cam.set(cv2.CAP_PROP_BUFFERSIZE, 1)
-cam.set(cv2.CAP_PROP_AUTOFOCUS, 0)
 
-previous_frame = None
+def loop(camera, crop_ratio = 1):
 
-while(True):
-    # Capture the video frame by frame
-    success, frame = cam.read()
-
+    # Capture the first video frame
+    success, frame = camera.read()
     if not success:
         print("Camera could not be read")
-        break
-    
-    else:
-        # Display the resulting frame
-        cv2.imshow('initialFrame', frame)
+        return False
 
-        # Choose a crop ratio
-        crop_ratio = 3/4
+    # Find the position of each border
+    height, width, _ = frame.shape
+    side_length = height * crop_ratio
+    top_border = int((height/2) - (side_length/2))
+    bottom_border = int((height/2) + (side_length/2))
+    left_border = int((width/2) - (side_length/2))
+    right_border = int((width/2) + (side_length/2))
 
-        # Find the position of each border
-        height, width, _ = frame.shape
-        side_length = height * crop_ratio
-        top_border = int((height/2) - (side_length/2))
-        bottom_border = int((height/2) + (side_length/2))
-        left_border = int((width/2) - (side_length/2))
-        right_border = int((width/2) + (side_length/2))
+    previous_frame = None
+    motion_detected = False
+    print("Waiting for motion...")
+
+    while(not motion_detected):
 
         # Slice the initial image
         center_frame = frame[top_border:bottom_border, left_border:right_border]
-        # cv2.imshow('centerFrame', center_frame)
 
         # Prepare the image (greyscale + blur to negate noise)
         prepared_frame = cv2.cvtColor(center_frame, cv2.COLOR_BGR2GRAY)
         prepared_frame = cv2.GaussianBlur(src=prepared_frame, ksize=(5,5), sigmaX=0)
-        # cv2.imshow('preparedCenterFrame', prepared_frame)
 
         if (previous_frame is None):
             # First frame; there is no previous one yet
@@ -63,29 +54,27 @@ while(True):
         cv2.imshow('centerFrameWithContours', center_frame)
 
         # Check if there is any significant motion
-        motion_detected = False
         for contour in contours:
             # print(cv2.contourArea(contour))
-            if cv2.contourArea(contour) > 10_000:
-                print(cv2.contourArea(contour))
+            if cv2.contourArea(contour) > 15_000:
                 # Ignore small motion
                 # e.g. something in the background or motion caused by camera autofocus
                 motion_detected = True
                 break
-            
-        if motion_detected:
-            print("MOTION DETECTED")
-        else:
-            print("no motion")
 
+        # Capture the next video frame
+        success, frame = camera.read()
+        if not success:
+            print("Camera could not be read")
+            break
 
-    # the 'q' button is set as the
-    # quitting button you may use any
-    # desired button of your choice
-    if cv2.waitKey(100) & 0xFF == ord('q'):
-        break
+        # the 'q' button is set as the
+        # quitting button you may use any
+        # desired button of your choice
+        if cv2.waitKey(100) & 0xFF == ord('q'):
+            break
 
-# After the loop release the cap object
-cam.release()
-# Destroy all the windows
-cv2.destroyAllWindows()
+    # Destroy all the windows
+    cv2.destroyAllWindows()
+
+    return motion_detected

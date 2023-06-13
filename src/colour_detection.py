@@ -1,38 +1,33 @@
-# import the opencv library
+# Import libraries
+import time
 import cv2
 import numpy as np
 
-# define a video capture object
-cam = cv2.VideoCapture(0)
-cam.set(cv2.CAP_PROP_BUFFERSIZE, 1)
-cam.set(cv2.CAP_PROP_AUTOFOCUS, 0)
 
-while(True):
-    # Capture the video frame by frame
-    success, frame = cam.read()
+def start(camera, timer = 1.0, crop_ratio = 1):
 
+    end_time = time.time() + timer
+
+    # Capture the first video frame
+    success, frame = camera.read()
     if not success:
         print("Camera could not be read")
-        break
+        return False
+    
+    # Find the position of each border
+    height, width, _ = frame.shape
+    side_length = height * crop_ratio
+    top_border = int((height/2) - (side_length/2))
+    bottom_border = int((height/2) + (side_length/2))
+    left_border = int((width/2) - (side_length/2))
+    right_border = int((width/2) + (side_length/2))
 
-    else:
-        # Display the resulting frame
-        cv2.imshow('initialFrame', frame)
-
-        # Choose a crop ratio
-        crop_ratio = 1/2
-
-        # Find the position of each border
-        height, width, _ = frame.shape
-        side_length = height * crop_ratio
-        top_border = int((height/2) - (side_length/2))
-        bottom_border = int((height/2) + (side_length/2))
-        left_border = int((width/2) - (side_length/2))
-        right_border = int((width/2) + (side_length/2))
+    color_matches = 0
+    while(time.time() < end_time):
 
         # Slice the initial image
         center_frame = frame[top_border:bottom_border, left_border:right_border]
-        cv2.imshow('centerFrame', center_frame)
+        # cv2.imshow('centerFrame', center_frame)
 
         # Convert the frame to HSV
         hsv_center_frame = cv2.cvtColor(center_frame, cv2.COLOR_BGR2HSV)
@@ -48,18 +43,25 @@ while(True):
         color_match_threshold = 0.20
         if(np.mean(mask) >= color_match_threshold * 255):
             print("COLOR MATCH")
-        else:
-            print("no match")
+            color_matches += 1
+            if(color_matches >= 3):
+                break
 
         cv2.imshow('colorMaskedCenterFrame', mask)
 
-    # the 'q' button is set as the
-    # quitting button you may use any
-    # desired button of your choice
-    if cv2.waitKey(100) & 0xFF == ord('q'):
-        break
+        # Capture the next video frame
+        success, frame = camera.read()
+        if not success:
+            print("Camera could not be read")
+            break
 
-# After the loop release the cap object
-cam.release()
-# Destroy all the windows
-cv2.destroyAllWindows()
+        # the 'q' button is set as the
+        # quitting button you may use any
+        # desired button of your choice
+        if cv2.waitKey(100) & 0xFF == ord('q'):
+            break
+
+    # Destroy all the windows
+    cv2.destroyAllWindows()
+
+    return (color_matches >= 3)

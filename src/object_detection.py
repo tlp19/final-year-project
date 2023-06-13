@@ -4,19 +4,9 @@ import numpy as np
 import tflite_runtime.interpreter as tflite
 import time
 
-# define a video capture object
-# cam = cv2.VideoCapture(0)
-cam = cv2.VideoCapture(0)
-cam.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
-cam.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
-cam.set(cv2.CAP_PROP_FPS, 5)
-cam.set(cv2.CAP_PROP_BUFFERSIZE, 1)
-cam.set(cv2.CAP_PROP_AUTOFOCUS, 0)
 
 MODEL_PATH = "./models/model_fp16.tflite"     # EfficientDet0 (float)
-
 CONFIDENCE_THRESHOLD = 0.50
-
 CLASS_LABELS = ["cauli", "other"]
 
 
@@ -33,11 +23,6 @@ print("input type:", input_dtype)
 colors = np.random.uniform(0, 255, size=(len(CLASS_LABELS), 3))
 if input_dtype != np.uint8:
     colors = colors / 255.0
-
-running_fps = 0
-running_inf_time = 0
-iterations = 0
-
 
 def detect(interpreter, data):
     signature_fn = interpreter.get_signature_runner()
@@ -63,7 +48,6 @@ def detect(interpreter, data):
             results.append(result)
     return results
 
-
 def draw_detection(image, detection):
     text = f"{detection['class_name']} {detection['confidence']:.2f}"
     color = colors[detection['class_id']]
@@ -77,24 +61,31 @@ def draw_detection(image, detection):
     cv2.rectangle(image, start, end, color, 2)
     cv2.putText(image, text, (start[0], start[1] - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
 
+def convert_bbox(bbox, original_image_shape, network_input_shape):
+    # Find the equivalent bounding box on the original image
+    size_ratio = original_image_shape[0] / network_input_shape[1]
+    print("size_ratio:", size_ratio)
+    crop_margins = (original_image_shape[1] - size_ratio * network_input_shape[2]) / 2
+    print("crop_margins:", crop_margins)
+    ymin, xmin, ymax, xmax = bbox
+    xmin = int(crop_margins + xmin * size_ratio * network_input_shape[2])
+    xmax = int(crop_margins + xmax * size_ratio * network_input_shape[2])
+    ymin = int(ymin * size_ratio * network_input_shape[1])
+    ymax = int(ymax * size_ratio * network_input_shape[1])
+    return (ymin, xmin, ymax, xmax)
 
-while(True):
-    # Capture the video frame by frame
-    # First, skip the buffered image
-    success, frame = cam.read()
-    # Then, capture a fresh one
-    success, frame = cam.read()
 
-    if not success:
-        print("Camera could not be read")
-        break
 
-    else:
-        iterations += 1
-        print(f"\niteration {iterations}")
-        start = time.time()
-
-        rows, cols, channels = frame.shape
+def run(camera, tries=3):
+    while(tries > 0):
+        # Capture the video frame by frame
+        # First, skip the buffered image
+        success, frame = camera.read()
+        # Then, capture a fresh one
+        success, frame = camera.read()
+        if not success:
+            print("Camera could not be read")
+            return None
 
         # Prepare input data
         if input_dtype != np.uint8:
@@ -108,9 +99,10 @@ while(True):
         input_reconstructed = cv2.cvtColor(input_data[0], cv2.COLOR_RGB2BGR)
 
         # Run model on the input data.
-        start2 = time.time()
+        start = time.time()
         detections = detect(interpreter, input_data)
-        end2 = time.time()
+        end = time.time()
+        print(f"{end-start:.3f}s inference time")
 
         # Draw detections
         for det in detections:
@@ -118,27 +110,24 @@ while(True):
             draw_detection(input_reconstructed, det)
 
         # Show the image with a rectangle surrounding the detected objects 
-        # cv2.imshow('input', frame)
         cv2.imshow('detections', input_reconstructed)
 
-        # Compute Inference time and FPS
-        end = time.time()
-        print(f"{end2-start2:.3f}s inference time")
-        running_inf_time += end2-start2
-        print(f"{running_inf_time/iterations:.3f}s avg inference time")
-        fps = 1 / (end - start)
-        print(f"{fps:.2f} fps")
-        running_fps += fps
-        print(f"{running_fps/iterations:.2f} avg fps")
+        # Find the detections of 'cauli' object
+        cauli_detections = [det for det in detections if det['class_name'] == 'cauli']
+        if len(cauli_detections) > 0:
+            # Sort detections by confidence
+            cauli_detections.sort(key=lambda x: x['confidence'], reverse=True)
+            return convert_bbox(cauli_detections[0]['box'], frame.shape, input_shape)
 
-        
-    # the 'q' button is set as the
-    # quitting button you may use any
-    # desired button of your choice
-    if cv2.waitKey(10) & 0xFF == ord('q'):
-        break
+        tries -= 1
+            
+        # the 'q' button is set as the
+        # quitting button you may use any
+        # desired button of your choice
+        if cv2.waitKey(10) & 0xFF == ord('q'):
+            break
 
-# After the loop release the cap object
-cam.release()
-# Destroy all the windows
-cv2.destroyAllWindows()
+    # Destroy all the windows
+    cv2.destroyAllWindows()
+
+    return None
