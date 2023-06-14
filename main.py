@@ -1,6 +1,5 @@
 import time
 import cv2
-from multiprocessing import Pool, TimeoutError
 import src.colour_detection as colour_detection
 import src.motion_detection as motion_detection
 import src.qr_code_detector as qr_code_detector
@@ -80,7 +79,7 @@ if __name__ == "__main__":
         # Validity checking: Object detection
         camera = init_camera(SIDE_CAMERA_ID, resolution=(640,480)) # Re-initialise the main camera
         cauli_bbox = object_detection.run(camera=camera, tries=10)
-        camera.release()
+        
         if cauli_bbox is None:
             print("No CauliCup was detected. Skipping.")
             leds.blink((255,0,0), brightness=1, times=2, keep=True)
@@ -88,17 +87,8 @@ if __name__ == "__main__":
             continue
 
         # Object collection: Object tracking + Open and close iris
-        bbox, uncertainty = None, None
-        with Pool(processes=4) as pool:
-            res = pool.apply_async(object_tracking.track, (cauli_bbox, 8.0, SIDE_CAMERA_ID, (640,480)))
-            time.sleep(1.0)
-            iris.open()
-            try:
-                bbox, uncertainty = res.get(timeout=15)
-            except TimeoutError:
-                print("Async jobs didn't finish in time. Collection is invalid.")
-                leds.blink((255,100,0), brightness=1, times=3, keep=True)
-        
+        bbox, uncertainty = object_tracking.track_and_open_iris(camera, cauli_bbox, timer=8.0, iris_open_delay=1.5)
+        camera.release()
         iris.close()
         if (uncertainty is None) or (bbox is None):
             print("Tracking failed. Collection is invalid.")
@@ -122,6 +112,7 @@ if __name__ == "__main__":
             time.sleep(3)
             continue
 
+        print("SUCCESS")
         leds.blink((0,255,0), brightness=1, times=3, keep=False)
 
         #TODO: send collection message to Cauli API (keep in backlog if fails, sync at later collection)
@@ -130,11 +121,6 @@ if __name__ == "__main__":
         #DONE: LED interface throughout the execution
         #TODO: add logging for maintainers
         #FIXME: remove debug prints
-
-        leds.color(brightness=0)
-
-        #FIXME: remove this
-        break
 
 
     # After the loop release the camera object

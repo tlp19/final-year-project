@@ -3,6 +3,8 @@ import time
 
 
 DUTY_BRACKET = (1000, 1700)
+OPEN_DURATION = 1.2
+CLOSE_DURATION = 1.2
 
 
 def duty_from_dir(dir):
@@ -23,10 +25,9 @@ def open():
     pwm = GPIO.PWM(12, 50)
     pwm.start(0)
     pwm.ChangeDutyCycle(duty_from_dir(0.5))
-    time.sleep(1.2)
+    time.sleep(OPEN_DURATION)
     pwm.ChangeDutyCycle(duty_from_dir(0))
     pwm.stop()
-    GPIO.cleanup()
     
 
 def close():
@@ -35,11 +36,21 @@ def close():
     pwm = GPIO.PWM(12, 50)
     pwm.start(0)
     pwm.ChangeDutyCycle(duty_from_dir(-0.5))
-    time.sleep(1.2)
+    time.sleep(CLOSE_DURATION)
     pwm.ChangeDutyCycle(duty_from_dir(0))
     pwm.stop()
+
+def open_continuously():
+    GPIO.setmode(GPIO.BCM)
+    GPIO.setup(12, GPIO.OUT)
+    pwm = GPIO.PWM(12, 50)
+    pwm.start(0)
+    pwm.ChangeDutyCycle(duty_from_dir(0.5))
+    return pwm
+
+def stop(pwm):
+    pwm.ChangeDutyCycle(duty_from_dir(0))
     pwm.stop()
-    GPIO.cleanup()
 
 
 
