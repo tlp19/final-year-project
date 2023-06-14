@@ -64,9 +64,7 @@ def draw_detection(image, detection):
 def convert_bbox(bbox, original_image_shape, network_input_shape):
     # Find the equivalent bounding box on the original image
     size_ratio = original_image_shape[0] / network_input_shape[1]
-    print("size_ratio:", size_ratio)
     crop_margins = (original_image_shape[1] - size_ratio * network_input_shape[2]) / 2
-    print("crop_margins:", crop_margins)
     ymin, xmin, ymax, xmax = bbox
     xmin = int(crop_margins + xmin * size_ratio * network_input_shape[2])
     xmax = int(crop_margins + xmax * size_ratio * network_input_shape[2])
@@ -76,7 +74,7 @@ def convert_bbox(bbox, original_image_shape, network_input_shape):
 
 
 
-def run(camera, tries=3):
+def run(camera, tries=3, debug=False):
     while(tries > 0):
         # Capture the video frame by frame
         # First, skip the buffered image
@@ -114,7 +112,7 @@ def run(camera, tries=3):
 
         # Find the detections of 'cauli' object
         cauli_detections = [det for det in detections if det['class_name'] == 'cauli']
-        if len(cauli_detections) > 0:
+        if len(cauli_detections) > 0 and debug==False:
             # Sort detections by confidence
             cauli_detections.sort(key=lambda x: x['confidence'], reverse=True)
             return convert_bbox(cauli_detections[0]['box'], frame.shape, input_shape)
@@ -131,3 +129,14 @@ def run(camera, tries=3):
     cv2.destroyAllWindows()
 
     return None
+
+
+if __name__ == "__main__":
+    cam = cv2.VideoCapture(2)
+    cam.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
+    cam.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
+    cam.set(cv2.CAP_PROP_FPS, 20)
+    cam.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+    cam.set(cv2.CAP_PROP_AUTOFOCUS, 0)
+    assert cam.isOpened()
+    run(cam, tries=100, debug=True)

@@ -1,13 +1,14 @@
 import RPi.GPIO as GPIO
 import time
 
+
+DUTY_BRACKET = (1000, 1700)
+
+
 GPIO.setmode(GPIO.BOARD)
 GPIO.setup(32, GPIO.OUT)
 
 pwm = GPIO.PWM(32, 50)
-pwm.start(0)
-
-DUTY_BRACKET = (1000, 1700)
 
 def duty_from_dir(dir):
     dir = min(1.0, max(-1.0, dir))      # Cutoff the direction between 1 and -1
@@ -21,8 +22,8 @@ def duty_from_dir(dir):
     duty = (duty_value / 20_000) * 100
     return round(duty, 3)
 
-
 def open():
+    pwm.start(0)
     pwm.ChangeDutyCycle(duty_from_dir(0.5))
     time.sleep(1.1)
     pwm.ChangeDutyCycle(duty_from_dir(0))
@@ -30,8 +31,13 @@ def open():
     GPIO.cleanup()
 
 def close():
+    pwm.start(0)
     pwm.ChangeDutyCycle(duty_from_dir(-0.5))
     time.sleep(1.1)
     pwm.ChangeDutyCycle(duty_from_dir(0))
     pwm.stop()
     GPIO.cleanup()
+
+
+if __name__ == "__main__":
+    close()

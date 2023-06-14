@@ -55,3 +55,12 @@ def check_weight():
     return True
   # Else return False
   return False
+
+def check_empty_weight():
+  weight = get_weight()
+  print(f'weight is {weight:.2f} g')
+  # Check if the weight is within the allowed range for a large cup
+  if (weight < (5.0 + WEIGHTING_IMPRECISION)):
+    return True
+  # Else return False
+  return False
