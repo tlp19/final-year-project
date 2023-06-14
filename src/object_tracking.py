@@ -2,11 +2,7 @@
 import time
 import cv2
 import numpy as np
-
-if __name__ != "__main__":
-    from . import iris
-if __name__ == "__main__":
-    import iris
+from multiprocessing import Queue
 
 
 # Find the bounding box that encompasses all the bounding boxes
@@ -68,30 +64,21 @@ def expand_box(box, expansion_factor):
     return (new_x, new_y, new_width, new_height)
 
 
-def track_and_open_iris(camera, tracking_box, timer, iris_open_delay):
+def track(q, tracking_box, timer, camera_id, resolution=(640,480)):
 
     end_time = time.time() + timer
-    iris_open_time = time.time() + iris_open_delay
-    iris_stop_time = iris_open_time + iris.OPEN_DURATION
-    iris_opened = False
-    iris_stopped = False
-    pwm = None
-
-    assert (end_time > iris_stop_time) and (iris_stop_time > iris_open_time)
-
     previous_frame = None
     uncertainty = 0
 
+    camera = cv2.VideoCapture(camera_id)
+    camera.set(cv2.CAP_PROP_FRAME_WIDTH, resolution[0])
+    camera.set(cv2.CAP_PROP_FRAME_HEIGHT, resolution[1])
+    camera.set(cv2.CAP_PROP_FPS, 20)
+    camera.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+    camera.set(cv2.CAP_PROP_AUTOFOCUS, 0)
+    assert camera.isOpened()
+
     while(time.time() < end_time):
-
-        if (time.time() > iris_stop_time) and not iris_stopped:
-            iris_stopped = True
-            iris.stop(pwm)
-
-        if (time.time() > iris_open_time) and not iris_opened:
-            iris_opened = True
-            pwm = iris.open_continuously()
-
         # Capture the video frame by frame
         success, frame = camera.read()
         if not success:
@@ -190,9 +177,12 @@ def track_and_open_iris(camera, tracking_box, timer, iris_open_delay):
         if cv2.waitKey(5) & 0xFF == ord('q'):
             break
 
+    # After the loop release the camera object
+    camera.release()
     # Destroy all the windows
     cv2.destroyAllWindows()
 
+    q.put([uncertainty, tracking_box])
     return uncertainty, tracking_box
 
 
@@ -213,6 +203,5 @@ if __name__ == "__main__":
         sys.exit()
     # Select a bounding box
     bbox = cv2.selectROI(first_frame, False)
-    print(track_and_open_iris(camera, tracking_box=bbox, timer=100, iris_open_delay=2))
-    iris.close()
     camera.release()
+    track(Queue(), tracking_box=bbox, timer=100, camera_id=2)
