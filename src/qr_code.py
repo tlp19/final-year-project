@@ -1,7 +1,6 @@
 # Import libraries
 import time
 import cv2
-import numpy as np
 from pyzbar import pyzbar
 from pyzbar.pyzbar import ZBarSymbol
 
@@ -9,7 +8,7 @@ from pyzbar.pyzbar import ZBarSymbol
 REPEATED_DETECTIONS = 3
 
 
-def start(camera, timer=1.0, crop_ratio=1):
+def detect(camera, timer=1.0, crop_ratio=1):
 
     end_time = time.time() + timer
 
@@ -78,7 +77,35 @@ def start(camera, timer=1.0, crop_ratio=1):
     return final_data
 
 
+TYPES = {0: "box", 1: "cup"}
+
+def process(string):
+    splits = string.split('/')
+    if (splits[-2] is None) or (splits[-2] != "wearecauli.test-app.link"):
+        return None
+    
+    data = splits[-1]
+    fields = data.split('-')
+    if len(fields) != 7:
+        return None
+    if (fields[0] is None) or (fields[0] != "container"):
+        return None
+    
+    type = TYPES.get(int(fields[1]), "unknown")
+    if type == "unknown":
+        return None
+    id = fields[2]
+    for f in fields[3:]:
+        id = id + '-' + f
+
+    return {'type': type, 'id': id}
+
+
+
 if __name__ == "__main__":
+
+    print(process("https://wearecauli.test-app.link/container-0001-8295f584-f45d-490c-5466-2654a546"))
+
     cam = cv2.VideoCapture(0)
     cam.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
     cam.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
@@ -86,6 +113,6 @@ if __name__ == "__main__":
     cam.set(cv2.CAP_PROP_BUFFERSIZE, 1)
     cam.set(cv2.CAP_PROP_AUTOFOCUS, 1)
     assert cam.isOpened()
-    result = start(cam, timer=100, crop_ratio=2/3)
+    result = detect(cam, timer=100, crop_ratio=2/3)
     print(result)
     cam.release()

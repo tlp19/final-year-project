@@ -24,9 +24,14 @@ def loop(camera, crop_ratio = 1):
 
     previous_frame = None
     motion_detected = False
-    print("Waiting for motion...")
 
     while(not motion_detected):
+
+        # Capture the next video frame
+        success, frame = camera.read()
+        if not success:
+            print("Camera could not be read")
+            break
 
         # Slice the initial image
         center_frame = frame[top_border:bottom_border, left_border:right_border]
@@ -64,12 +69,6 @@ def loop(camera, crop_ratio = 1):
                 # e.g. something in the background or motion caused by camera autofocus
                 motion_detected = True
                 break
-
-        # Capture the next video frame
-        success, frame = camera.read()
-        if not success:
-            print("Camera could not be read")
-            break
 
         # the 'q' button is set as the
         # quitting button you may use any

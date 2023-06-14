@@ -3,7 +3,7 @@ import time
 
 
 DUTY_BRACKET = (1000, 1700)
-OPEN_DURATION = 1.2
+OPEN_DURATION = 1.5
 CLOSE_DURATION = 1.2
 
 
@@ -58,4 +58,6 @@ if __name__ == "__main__":
     open()
     time.sleep(2)
     close()
+    GPIO.cleanup()
+    
     
