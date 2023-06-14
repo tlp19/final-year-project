@@ -7,6 +7,12 @@ OPEN_DURATION = 1.5
 CLOSE_DURATION = 1.2
 
 
+GPIO.setmode(GPIO.BCM)
+GPIO.setup(12, GPIO.OUT)
+# pwm = GPIO.PWM(12, 50)
+# pwm.start(0)
+
+
 def duty_from_dir(dir):
     dir = min(1.0, max(-1.0, dir))      # Cutoff the direction between 1 and -1
     dir = - dir                         # Reverse the direction so that 1 is CW and -1 is CCW
@@ -20,8 +26,8 @@ def duty_from_dir(dir):
     return round(duty, 3)
 
 def open():
-    GPIO.setmode(GPIO.BCM)
-    GPIO.setup(12, GPIO.OUT)
+    # GPIO.setmode(GPIO.BCM)
+    # GPIO.setup(12, GPIO.OUT)
     pwm = GPIO.PWM(12, 50)
     pwm.start(0)
     pwm.ChangeDutyCycle(duty_from_dir(0.5))
@@ -31,8 +37,8 @@ def open():
     
 
 def close():
-    GPIO.setmode(GPIO.BCM)
-    GPIO.setup(12, GPIO.OUT)
+    # GPIO.setmode(GPIO.BCM)
+    # GPIO.setup(12, GPIO.OUT)
     pwm = GPIO.PWM(12, 50)
     pwm.start(0)
     pwm.ChangeDutyCycle(duty_from_dir(-0.5))
@@ -41,8 +47,8 @@ def close():
     pwm.stop()
 
 def open_continuously():
-    GPIO.setmode(GPIO.BCM)
-    GPIO.setup(12, GPIO.OUT)
+    # GPIO.setmode(GPIO.BCM)
+    # GPIO.setup(12, GPIO.OUT)
     pwm = GPIO.PWM(12, 50)
     pwm.start(0)
     pwm.ChangeDutyCycle(duty_from_dir(0.5))
@@ -50,7 +56,7 @@ def open_continuously():
 
 def stop(pwm):
     pwm.ChangeDutyCycle(duty_from_dir(0))
-    pwm.stop()
+    pwm.stop
 
 
 
@@ -58,6 +64,18 @@ if __name__ == "__main__":
     open()
     time.sleep(2)
     close()
+
+    # pwm.stop()
+
+    time.sleep(3)
+
+    # pwm.start(7)
+
+    # time.sleep(3)
+
+    open()
+    time.sleep(2)
+    close()
+
+    # pwm.stop()
     GPIO.cleanup()
-    
-    

@@ -4,7 +4,7 @@ import cv2
 import numpy as np
 
 
-COLOR_MATCH_THRESHOLD = 0.40
+COLOR_MATCH_THRESHOLD = 0.30
 REPEATED_MATCHES = 3
 
 
