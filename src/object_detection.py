@@ -77,6 +77,7 @@ def convert_bbox(bbox, original_image_shape, network_input_shape):
 def run(camera, tries=3, debug=False):
 
     converted_bbox = None
+    
     while(tries > 0):
         # Capture the video frame by frame
         # First, skip the buffered image
