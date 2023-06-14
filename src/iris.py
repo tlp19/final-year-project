@@ -5,11 +5,6 @@ import time
 DUTY_BRACKET = (1000, 1700)
 
 
-GPIO.setmode(GPIO.BOARD)
-GPIO.setup(32, GPIO.OUT)
-
-pwm = GPIO.PWM(32, 50)
-
 def duty_from_dir(dir):
     dir = min(1.0, max(-1.0, dir))      # Cutoff the direction between 1 and -1
     dir = - dir                         # Reverse the direction so that 1 is CW and -1 is CCW
@@ -23,21 +18,33 @@ def duty_from_dir(dir):
     return round(duty, 3)
 
 def open():
+    GPIO.setmode(GPIO.BOARD)
+    GPIO.setup(32, GPIO.OUT)
+    pwm = GPIO.PWM(32, 50)
     pwm.start(0)
     pwm.ChangeDutyCycle(duty_from_dir(0.5))
     time.sleep(1.1)
     pwm.ChangeDutyCycle(duty_from_dir(0))
     pwm.stop()
     GPIO.cleanup()
+    
 
 def close():
+    GPIO.setmode(GPIO.BOARD)
+    GPIO.setup(32, GPIO.OUT)
+    pwm = GPIO.PWM(32, 50)
     pwm.start(0)
     pwm.ChangeDutyCycle(duty_from_dir(-0.5))
     time.sleep(1.1)
     pwm.ChangeDutyCycle(duty_from_dir(0))
     pwm.stop()
+    pwm.stop()
     GPIO.cleanup()
 
 
+
 if __name__ == "__main__":
+    open()
+    time.sleep(2)
     close()
+    

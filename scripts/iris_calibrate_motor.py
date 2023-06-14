@@ -7,7 +7,7 @@ GPIO.setup(32, GPIO.OUT)
 pwm = GPIO.PWM(32, 50)
 pwm.start(0)
 
-DUTY_BRACKET = (1000, 1750)
+DUTY_BRACKET = (1000, 1700)
 
 # 1000 : 1375 : 1750
 
@@ -35,23 +35,23 @@ def duty_from_dir(dir):
 try:
     # Make the continuous servo turn
     pwm.ChangeDutyCycle(duty_from_dir(1))
-    time.sleep(0.1)
+    time.sleep(0.2)
     pwm.ChangeDutyCycle(duty_from_dir(0.9))
-    time.sleep(0.1)
+    time.sleep(0.2)
     pwm.ChangeDutyCycle(duty_from_dir(0.75))
-    time.sleep(0.1)
+    time.sleep(0.2)
     pwm.ChangeDutyCycle(duty_from_dir(0.25))
-    time.sleep(0.1)
+    time.sleep(0.2)
     pwm.ChangeDutyCycle(duty_from_dir(0))
-    time.sleep(0.1)
+    time.sleep(1)
     pwm.ChangeDutyCycle(duty_from_dir(-0.25))
-    time.sleep(0.1)
+    time.sleep(0.2)
     pwm.ChangeDutyCycle(duty_from_dir(-0.75))
-    time.sleep(0.1)
+    time.sleep(0.2)
     pwm.ChangeDutyCycle(duty_from_dir(-0.9))
-    time.sleep(0.1)
+    time.sleep(0.2)
     pwm.ChangeDutyCycle(duty_from_dir(-1.0))
-    time.sleep(0.1)
+    time.sleep(0.2)
     pwm.stop()
     GPIO.cleanup()
 
