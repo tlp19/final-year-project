@@ -70,11 +70,13 @@ def convert_bbox(bbox, original_image_shape, network_input_shape):
     xmax = int(crop_margins + xmax * size_ratio * network_input_shape[2])
     ymin = int(ymin * size_ratio * network_input_shape[1])
     ymax = int(ymax * size_ratio * network_input_shape[1])
-    return (ymin, xmin, ymax, xmax)
+    return (xmin, ymin, xmax-xmin, ymax-ymin)
 
 
 
 def run(camera, tries=3, debug=False):
+
+    converted_bbox = None
     while(tries > 0):
         # Capture the video frame by frame
         # First, skip the buffered image
@@ -115,7 +117,8 @@ def run(camera, tries=3, debug=False):
         if len(cauli_detections) > 0 and debug==False:
             # Sort detections by confidence
             cauli_detections.sort(key=lambda x: x['confidence'], reverse=True)
-            return convert_bbox(cauli_detections[0]['box'], frame.shape, input_shape)
+            converted_bbox = convert_bbox(cauli_detections[0]['box'], frame.shape, input_shape)
+            break
 
         tries -= 1
             
@@ -128,7 +131,7 @@ def run(camera, tries=3, debug=False):
     # Destroy all the windows
     cv2.destroyAllWindows()
 
-    return None
+    return converted_bbox
 
 
 if __name__ == "__main__":
