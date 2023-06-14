@@ -18,24 +18,24 @@ def duty_from_dir(dir):
     return round(duty, 3)
 
 def open():
-    GPIO.setmode(GPIO.BOARD)
-    GPIO.setup(32, GPIO.OUT)
-    pwm = GPIO.PWM(32, 50)
+    GPIO.setmode(GPIO.BCM)
+    GPIO.setup(12, GPIO.OUT)
+    pwm = GPIO.PWM(12, 50)
     pwm.start(0)
     pwm.ChangeDutyCycle(duty_from_dir(0.5))
-    time.sleep(1.1)
+    time.sleep(1.2)
     pwm.ChangeDutyCycle(duty_from_dir(0))
     pwm.stop()
     GPIO.cleanup()
     
 
 def close():
-    GPIO.setmode(GPIO.BOARD)
-    GPIO.setup(32, GPIO.OUT)
-    pwm = GPIO.PWM(32, 50)
+    GPIO.setmode(GPIO.BCM)
+    GPIO.setup(12, GPIO.OUT)
+    pwm = GPIO.PWM(12, 50)
     pwm.start(0)
     pwm.ChangeDutyCycle(duty_from_dir(-0.5))
-    time.sleep(1.1)
+    time.sleep(1.2)
     pwm.ChangeDutyCycle(duty_from_dir(0))
     pwm.stop()
     pwm.stop()

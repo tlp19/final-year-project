@@ -1,11 +1,8 @@
-# import the opencv library
+# Import libraries
+import time
 import cv2
 import numpy as np
-import sys
 
-# define a video capture object
-cam = cv2.VideoCapture(0)
-cam.set(cv2.CAP_PROP_AUTOFOCUS, 0)
 
 # Find the bounding box that encompasses all the bounding boxes
 def find_global_bounding_box(bounding_boxes):
@@ -66,31 +63,33 @@ def expand_box(box, expansion_factor):
     return (new_x, new_y, new_width, new_height)
 
 
-# Read first frame.
-success, first_frame = cam.read()
-if not success:
-    print("Camera could not be read")
-    sys.exit()
-# Select a bounding box
-tracking_box = cv2.selectROI(first_frame, False)
+def track(tracking_box, timer, camera_id, resolution=(640,480)):
 
-previous_frame = None
+    end_time = time.time() + timer
+    previous_frame = None
+    uncertainty = 0
 
-while(True):
-    # Capture the video frame by frame
-    success, frame = cam.read()
+    camera = cv2.VideoCapture(camera_id)
+    camera.set(cv2.CAP_PROP_FRAME_WIDTH, resolution[0])
+    camera.set(cv2.CAP_PROP_FRAME_HEIGHT, resolution[1])
+    camera.set(cv2.CAP_PROP_FPS, 20)
+    camera.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+    camera.set(cv2.CAP_PROP_AUTOFOCUS, 0)
+    assert camera.isOpened()
 
-    if not success:
-        print("Camera could not be read")
-        break
-    
-    else:
+    while(time.time() < end_time):
+        # Capture the video frame by frame
+        success, frame = camera.read()
+        if not success:
+            print("Camera could not be read")
+            uncertainty += 1
+            continue
+        
         cam_height, cam_width, _ = frame.shape
         
         # Prepare the image (greyscale + blur to negate noise)
         prepared_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         prepared_frame = cv2.GaussianBlur(src=prepared_frame, ksize=(5,5), sigmaX=0)
-        # cv2.imshow('preparedCenterFrame', prepared_frame)
 
         if (previous_frame is None):
             # First frame; there is no previous one yet
@@ -135,8 +134,8 @@ while(True):
         SEARCH_OVERLAP_W_BIG_MOTION = 0.85
         search_box = expand_box(tracking_box, SEARCH_EXPANSION_FACTOR)
         intersecting_boxes = [current_bbox for current_bbox in bounding_boxes
-                              if (percentage_inside(current_bbox, search_box) > FRAGMENTED_BOX_OVERLAP_W_SEARCH)
-                              or (percentage_inside(search_box, current_bbox) > SEARCH_OVERLAP_W_BIG_MOTION)]
+                            if (percentage_inside(current_bbox, search_box) > FRAGMENTED_BOX_OVERLAP_W_SEARCH)
+                            or (percentage_inside(search_box, current_bbox) > SEARCH_OVERLAP_W_BIG_MOTION)]
 
         # Find the bounding box that encompasses all the intersecting boxes
         ALLOWED_DIM_REDUCTION_FACTOR = 0.6
@@ -157,6 +156,7 @@ while(True):
                 tracking_succeeded = True
         else:
             # No intersecting boxes; use the previous tracking box
+            uncertainty += 1 
             pass
 
         # Draw the updated tracking box
@@ -170,13 +170,36 @@ while(True):
         cv2.rectangle(t_frame, (int(tracking_box[0]), int(tracking_box[1])), (int(tracking_box[0] + tracking_box[2]), int(tracking_box[1] + tracking_box[3])), (255, 0, 0), 3)
         cv2.imshow('Tracking Box', t_frame)
 
-    # the 'q' button is set as the
-    # quitting button you may use any
-    # desired button of your choice
-    if cv2.waitKey(5) & 0xFF == ord('q'):
-        break
+        # the 'q' button is set as the
+        # quitting button you may use any
+        # desired button of your choice
+        if cv2.waitKey(5) & 0xFF == ord('q'):
+            break
 
-# After the loop release the cap object
-cam.release()
-# Destroy all the windows
-cv2.destroyAllWindows()
+    # After the loop release the camera object
+    camera.release()
+    # Destroy all the windows
+    cv2.destroyAllWindows()
+
+    return uncertainty, tracking_box
+
+
+def validate(bbox, uncertainty):
+    return True
+
+if __name__ == "__main__":
+    camera = cv2.VideoCapture(2)
+    camera.set(cv2.CAP_PROP_FPS, 20)
+    camera.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+    camera.set(cv2.CAP_PROP_AUTOFOCUS, 0)
+    assert camera.isOpened()
+    # Read first frame.
+    success, first_frame = camera.read()
+    if not success:
+        print("Camera could not be read")
+        import sys 
+        sys.exit()
+    # Select a bounding box
+    bbox = cv2.selectROI(first_frame, False)
+    camera.release()
+    track(2, tracking_box=bbox, timer=100)
