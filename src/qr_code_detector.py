@@ -6,21 +6,15 @@ from pyzbar import pyzbar
 from pyzbar.pyzbar import ZBarSymbol
 
 
-def start(timer=1.0, crop_ratio=1):
+REPEATED_DETECTIONS = 3
+
+
+def start(camera, timer=1.0, crop_ratio=1):
 
     end_time = time.time() + timer
 
-    # Define a video capture object (top-down camera)
-    camera2 = cv2.VideoCapture(2)
-    camera2.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
-    camera2.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
-    camera2.set(cv2.CAP_PROP_FPS, 20)
-    camera2.set(cv2.CAP_PROP_BUFFERSIZE, 1)
-    camera2.set(cv2.CAP_PROP_AUTOFOCUS, 1)
-    assert camera2.isOpened()
-
     # Capture the first video frame
-    success, frame = camera2.read()
+    success, frame = camera.read()
     if not success:
         print("Camera could not be read")
         return False
@@ -36,7 +30,6 @@ def start(timer=1.0, crop_ratio=1):
     data = {}
     final_data = None
 
-
     while(time.time() < end_time):
 
         # Slice the initial image
@@ -44,14 +37,13 @@ def start(timer=1.0, crop_ratio=1):
 
         # Find and decode QR codes
         qrcodes = pyzbar.decode(frame, symbols=[ZBarSymbol.QRCODE])
-        
        
         for qrcode in qrcodes:
             code_info = qrcode.data.decode('utf-8')
             
             # Check that QR code has been decoded reliably multiple (3) times
             previous_occurrences = data.get(code_info, 0)
-            if previous_occurrences >= 2:
+            if previous_occurrences >= (REPEATED_DETECTIONS-1):
                 final_data = code_info
                 break
             
@@ -63,10 +55,13 @@ def start(timer=1.0, crop_ratio=1):
             font = cv2.FONT_HERSHEY_DUPLEX
             cv2.putText(frame, code_info, (x + 6, y - 6), font, 0.5, (255, 255, 255), 1)
 
+        if final_data is not None:
+            break
+
         cv2.imshow('detectionFrame', frame)
 
         # Capture the next video frame
-        success, frame = camera2.read()
+        success, frame = camera.read()
         if not success:
             print("Camera could not be read")
             break
@@ -77,9 +72,20 @@ def start(timer=1.0, crop_ratio=1):
         if cv2.waitKey(100) & 0xFF == ord('q'): #40 for 25Hz
             break
 
-    # After the loop release the cap object
-    camera2.release()
     # Destroy all the windows
     cv2.destroyAllWindows()
 
     return final_data
+
+
+if __name__ == "__main__":
+    cam = cv2.VideoCapture(0)
+    cam.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
+    cam.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
+    cam.set(cv2.CAP_PROP_FPS, 20)
+    cam.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+    cam.set(cv2.CAP_PROP_AUTOFOCUS, 1)
+    assert cam.isOpened()
+    result = start(cam, timer=100, crop_ratio=2/3)
+    print(result)
+    cam.release()
