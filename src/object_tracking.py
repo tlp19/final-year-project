@@ -81,6 +81,7 @@ def track_and_open_iris(camera, tracking_box, timer, iris_open_delay):
 
     previous_frame = None
     uncertainty = 0
+    cam_height, cam_width = 0, 0
 
     while(time.time() < end_time):
 
@@ -168,9 +169,11 @@ def track_and_open_iris(camera, tracking_box, timer, iris_open_delay):
             and (candidate_tracking_box[2] * candidate_tracking_box[3] < ALLOWED_MAX_AREA)):
                 tracking_box = candidate_tracking_box
                 tracking_succeeded = True
+            else:
+                # Failed to find a valid update, increase uncertainty
+                uncertainty += 1 
         else:
             # No intersecting boxes; use the previous tracking box
-            uncertainty += 1 
             pass
 
         # Draw the updated tracking box
@@ -193,11 +196,48 @@ def track_and_open_iris(camera, tracking_box, timer, iris_open_delay):
     # Destroy all the windows
     cv2.destroyAllWindows()
 
-    return uncertainty, tracking_box
+    return tracking_box, (cam_height, cam_width), uncertainty
 
 
-def validate(bbox, uncertainty):
+def validate(bbox, dims, uncertainty):
+    print(bbox, dims, uncertainty)
+
+    height = dims[0]
+    width = dims[1]
+
+    xmin = bbox[0]
+    ymin = bbox[1]
+    xmax = bbox[0] + bbox[2]
+    ymax = bbox[1] + bbox[3]
+
+    x_center = (xmin+xmax)/2
+    y_center = (ymin+ymax)/2
+    print(x_center, y_center)
+
+    if uncertainty > 30:
+        if (ymin <= 5) or (y_center <= 0.25 * height):
+            return False
+        if (x_center <= 0.10 * width) or (x_center >= 0.90 * width):
+            return False
+    elif uncertainty > 20:
+        if (ymin <= 0.05 * height) or (y_center <= 0.33 * height):
+            return False
+        if (x_center <= 0.20 * width) or (x_center >= 0.80 * width):
+            return False
+    elif uncertainty > 10:
+        if (ymin <= 0.10 * height) or (y_center <= 0.45 * height):
+            return False
+        if (x_center <= 0.25 * width) or (x_center >= 0.75 * width):
+            return False
+    else:
+        if (ymin <= 0.25 * height) or (y_center <= 0.50 * height):
+            return False
+        if (x_center <= 0.30 * width) or (x_center >= 0.70 * width):
+            return False
+
     return True
+
+
 
 if __name__ == "__main__":
     camera = cv2.VideoCapture(2)

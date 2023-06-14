@@ -96,7 +96,7 @@ if __name__ == "__main__":
         leds.fade((100,150,100), 0.25, to_c=(0,0,200), to_b=0.25, duration=0.75)
 
         # Object collection: Object tracking + Open and close iris
-        bbox, uncertainty = object_tracking.track_and_open_iris(camera, cauli_bbox, timer=7.0, iris_open_delay=1.5)
+        bbox, dims, uncertainty = object_tracking.track_and_open_iris(camera, cauli_bbox, timer=7.0, iris_open_delay=1.5)
         camera.release()
         iris.close()
         if (uncertainty is None) or (bbox is None):
@@ -107,7 +107,7 @@ if __name__ == "__main__":
 
         #TODO: Analyse tracking results
         # Object collection: Analyse tracking results
-        valid_tracking = object_tracking.validate(bbox, uncertainty)
+        valid_tracking = object_tracking.validate(bbox, dims, uncertainty)
         if (valid_tracking is None) or (valid_tracking == False):
             print("Object did not fall through the trapdoor. Collection is invalid.")
             leds.blink((255,100,0), brightness=1, times=3, keep=True)

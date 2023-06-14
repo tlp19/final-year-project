@@ -17,8 +17,8 @@ interpreter.allocate_tensors()
 input_details = interpreter.get_input_details()
 input_shape = input_details[0]['shape']
 input_dtype = input_details[0]['dtype']
-print("input shape:", input_shape)
-print("input type:", input_dtype)
+# print("input shape:", input_shape)
+# print("input type:", input_dtype)
 
 colors = np.random.uniform(0, 255, size=(len(CLASS_LABELS), 3))
 if input_dtype != np.uint8:
