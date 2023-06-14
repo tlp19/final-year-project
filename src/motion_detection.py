@@ -3,6 +3,9 @@ import cv2
 import numpy as np
 
 
+SENSIBILITY = 50_000
+
+
 def loop(camera, crop_ratio = 1):
 
     # Capture the first video frame
@@ -56,7 +59,7 @@ def loop(camera, crop_ratio = 1):
         # Check if there is any significant motion
         for contour in contours:
             # print(cv2.contourArea(contour))
-            if cv2.contourArea(contour) > 15_000:
+            if cv2.contourArea(contour) > SENSIBILITY:
                 # Ignore small motion
                 # e.g. something in the background or motion caused by camera autofocus
                 motion_detected = True
@@ -78,3 +81,14 @@ def loop(camera, crop_ratio = 1):
     cv2.destroyAllWindows()
 
     return motion_detected
+
+
+if __name__ == "__main__":
+    cam = cv2.VideoCapture(2)
+    cam.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
+    cam.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
+    cam.set(cv2.CAP_PROP_FPS, 20)
+    cam.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+    cam.set(cv2.CAP_PROP_AUTOFOCUS, 0)
+    assert cam.isOpened()
+    loop(cam, crop_ratio=3/4)

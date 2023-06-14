@@ -1,8 +1,10 @@
 # import the opencv library
 import cv2
 
+CAMERA_ID = 2
+
 # define a video capture object
-cam = cv2.VideoCapture(0)
+cam = cv2.VideoCapture(CAMERA_ID)
 cam.set(cv2.CAP_PROP_AUTOFOCUS, 1)
 
 print("\nPlace a CauliCup with the CauliCup logo facing the camera.")
