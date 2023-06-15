@@ -77,6 +77,7 @@ def convert_bbox(bbox, original_image_shape, network_input_shape):
 def run(camera, tries=3, debug=False):
 
     converted_bbox = None
+    confidence = 0.0
     
     while(tries > 0):
         # Capture the video frame by frame
@@ -119,6 +120,7 @@ def run(camera, tries=3, debug=False):
             # Sort detections by confidence
             cauli_detections.sort(key=lambda x: x['confidence'], reverse=True)
             converted_bbox = convert_bbox(cauli_detections[0]['box'], frame.shape, input_shape)
+            confidence = cauli_detections[0]['confidence']
             break
 
         tries -= 1
@@ -132,7 +134,7 @@ def run(camera, tries=3, debug=False):
     # Destroy all the windows
     cv2.destroyAllWindows()
 
-    return converted_bbox
+    return confidence, converted_bbox
 
 
 if __name__ == "__main__":
