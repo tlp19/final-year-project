@@ -29,8 +29,8 @@ def tare():
 
 def read():
   # Get the weight of the object
-  data1 = loadcell1.read_weight(10)
-  data2 = loadcell2.read_weight(10)
+  data1 = loadcell1.read_weight(5)
+  data2 = loadcell2.read_weight(5)
   weight = - (data1 + data2)
   # print(f'weight is {weight:.2f} g   ({-data1:.2f} + {-data2:.2f})')
   return weight

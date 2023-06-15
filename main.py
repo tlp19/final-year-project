@@ -16,12 +16,12 @@ SIDE_CAMERA_ID = 2
 TOP_CAMERA_ID = 0
 
 
-def init_camera(camera_id, resolution=(1280,720), autofocus=False):
+def init_camera(camera_id, resolution=(640,480), fps=20, autofocus=False):
     # Define a video capture object (side camera)
     cam = cv2.VideoCapture(camera_id)
     cam.set(cv2.CAP_PROP_FRAME_WIDTH, resolution[0])
     cam.set(cv2.CAP_PROP_FRAME_HEIGHT, resolution[1])
-    cam.set(cv2.CAP_PROP_FPS, 20)
+    cam.set(cv2.CAP_PROP_FPS, fps)
     cam.set(cv2.CAP_PROP_BUFFERSIZE, 1)
     cam.set(cv2.CAP_PROP_AUTOFOCUS, int(autofocus))
     return cam
@@ -44,7 +44,7 @@ if __name__ == "__main__":
                 print("Motion detection failed. Trying again.")
                 continue
 
-            leds.fade(to_c=(100,150,100), to_b=0.5, duration=0.75)
+            leds.fade(to_c=(100,150,100), to_b=0.5, duration=0.5)
 
             # Presence detection: Colour detection
             color_detected = colour_detection.start(camera=camera, timer=5.0, crop_ratio=1/2)
@@ -56,7 +56,7 @@ if __name__ == "__main__":
 
             print("Presence detected.")
 
-            leds.fade((100,150,100), 0.5, to_c=(100,150,100), to_b=0.25, duration=0.5)
+            leds.color((100,100,100), 0.25)
 
             # Validity checking: QR code detection
             camera_top = init_camera(TOP_CAMERA_ID, autofocus=True) # Start the top-down camera
@@ -87,7 +87,7 @@ if __name__ == "__main__":
                 continue
 
             # Validity checking: Object detection
-            camera = init_camera(SIDE_CAMERA_ID, resolution=(640,480)) # Re-initialise the main camera
+            camera = init_camera(SIDE_CAMERA_ID, resolution=(640,480), fps=30) # Re-initialise the main camera
             cauli_bbox = object_detection.run(camera=camera, tries=10)
             if cauli_bbox is None:
                 print("No CauliCup was detected. Skipping.")
@@ -95,10 +95,10 @@ if __name__ == "__main__":
                 time.sleep(3)
                 continue
 
-            leds.fade((100,150,100), 0.25, to_c=(0,0,200), to_b=0.25, duration=0.75)
+            leds.fade((100,100,100), 0.25, to_c=(0,0,200), to_b=0.25, duration=0.5)
 
             # Object collection: Object tracking + Open and close iris
-            bbox, dims, uncertainty = object_tracking.track_and_open_iris(camera, cauli_bbox, timer=7.0, iris_open_delay=1.5)
+            bbox, dims, uncertainty = object_tracking.track_and_open_iris(camera, cauli_bbox, timer=6.0, iris_open_delay=1)
             camera.release()
             iris.close()
             if (uncertainty is None) or (bbox is None):
@@ -107,7 +107,6 @@ if __name__ == "__main__":
                 time.sleep(3)
                 continue
 
-            #TODO: Analyse tracking results
             # Object collection: Analyse tracking results
             valid_tracking = object_tracking.validate(bbox, dims, uncertainty)
             if (valid_tracking is None) or (valid_tracking == False):
@@ -130,8 +129,9 @@ if __name__ == "__main__":
             #TODO: send collection message to Cauli API (keep in backlog if fails, sync at later collection)
             #TODO: add logging for maintainers
             #FIXME: remove debug prints
+
     except KeyboardInterrupt:
         print(" Excited with KeyboardInterrupt. Cleaning up...")
         # After the loop release the camera object
         camera.release()
-        GPIO.cleanup()
+        iris.cleanup()

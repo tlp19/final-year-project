@@ -9,6 +9,18 @@ if __name__ == "__main__":
     import iris
 
 
+DIFF_DILATION = 3
+DIFF_THRESH = 10
+MIN_CONTOUR_AREA = 2500
+
+SEARCH_EXPANSION_FACTOR = 1.1
+FRAGMENTED_BOX_OVERLAP_W_SEARCH = 0.75
+SEARCH_OVERLAP_W_BIG_MOTION = 0.85
+
+ALLOWED_DIM_REDUCTION_FACTOR = 0.6
+ALLOWED_DIM_AUGMENTATION_FACTOR = 2.5
+ALLOWED_MAX_SCREEN_PORTION = 0.80
+
 # Find the bounding box that encompasses all the bounding boxes
 def find_global_bounding_box(bounding_boxes):
     # Find the top left corner
@@ -68,7 +80,7 @@ def expand_box(box, expansion_factor):
     return (new_x, new_y, new_width, new_height)
 
 
-def track_and_open_iris(camera, tracking_box, timer, iris_open_delay):
+def track_and_open_iris(camera, tracking_box, timer, iris_open_delay, debug=False):
 
     end_time = time.time() + timer
     iris_open_time = time.time() + iris_open_delay
@@ -83,7 +95,9 @@ def track_and_open_iris(camera, tracking_box, timer, iris_open_delay):
     uncertainty = 0
     cam_height, cam_width = 0, 0
 
-    while(time.time() < end_time):
+    iter_time = time.time()
+
+    while(iter_time < end_time):
 
         if (time.time() > iris_stop_time) and not iris_stopped:
             iris_stopped = True
@@ -116,46 +130,39 @@ def track_and_open_iris(camera, tracking_box, timer, iris_open_delay):
         previous_frame = prepared_frame
 
         # Dilate the detected changes to fill in small gaps
-        DIFF_DILATION = 3
         kernel = np.ones((DIFF_DILATION, DIFF_DILATION))
         diff_frame = cv2.dilate(diff_frame, kernel, 1)
 
         # Find if difference is above a certain threshold
-        DIFF_THRESH = 10
         thresh_frame = cv2.threshold(src=diff_frame, thresh=DIFF_THRESH, maxval=255, type=cv2.THRESH_BINARY)[1]
 
         # Draw contours of areas that have changed
         contours, _ = cv2.findContours(image=thresh_frame, mode=cv2.RETR_EXTERNAL, method=cv2.CHAIN_APPROX_SIMPLE)
 
         # Check if there is any significant motion
-        MIN_CONTOUR_AREA = 2500
         contours = [c for c in contours if cv2.contourArea(c) > MIN_CONTOUR_AREA]
         bounding_boxes = [cv2.boundingRect(c) for c in contours]
         
-        # Draw contours
-        c_frame = frame.copy()
-        cv2.drawContours(image=c_frame, contours=contours, contourIdx=-1, color=(0, 255, 0), thickness=2, lineType=cv2.LINE_AA)
-        cv2.imshow('MotionContours', c_frame)
-        # Draw the bounding boxes on the frame
-        b_frame = frame.copy()
-        for box in bounding_boxes:
-            x, y, w, h = box
-            cv2.rectangle(b_frame, (x, y), (x+w, y+h), (0, 255, 0), 2)
-        cv2.imshow('MotionBoundingBoxes', b_frame)
+        if debug:
+            # Draw contours
+            c_frame = frame.copy()
+            cv2.drawContours(image=c_frame, contours=contours, contourIdx=-1, color=(0, 255, 0), thickness=2, lineType=cv2.LINE_AA)
+            cv2.imshow('MotionContours', c_frame)
+            # Draw the bounding boxes on the frame
+            b_frame = frame.copy()
+            for box in bounding_boxes:
+                x, y, w, h = box
+                cv2.rectangle(b_frame, (x, y), (x+w, y+h), (0, 255, 0), 2)
+            cv2.imshow('MotionBoundingBoxes', b_frame)
         
         # Find all the bounding boxes that overlap more that 50% with the expanded tracking box
-        SEARCH_EXPANSION_FACTOR = 1.1
-        FRAGMENTED_BOX_OVERLAP_W_SEARCH = 0.75
-        SEARCH_OVERLAP_W_BIG_MOTION = 0.85
         search_box = expand_box(tracking_box, SEARCH_EXPANSION_FACTOR)
         intersecting_boxes = [current_bbox for current_bbox in bounding_boxes
                             if (percentage_inside(current_bbox, search_box) > FRAGMENTED_BOX_OVERLAP_W_SEARCH)
                             or (percentage_inside(search_box, current_bbox) > SEARCH_OVERLAP_W_BIG_MOTION)]
 
         # Find the bounding box that encompasses all the intersecting boxes
-        ALLOWED_DIM_REDUCTION_FACTOR = 0.6
-        ALLOWED_DIM_AUGMENTATION_FACTOR = 2.5
-        ALLOWED_MAX_AREA = 0.80 * cam_width * cam_height
+        allowed_max_area = ALLOWED_MAX_SCREEN_PORTION * cam_width * cam_height
 
         tracking_succeeded = False
         if (len(intersecting_boxes) > 0):
@@ -166,7 +173,7 @@ def track_and_open_iris(camera, tracking_box, timer, iris_open_delay):
             and (candidate_tracking_box[3] > ALLOWED_DIM_REDUCTION_FACTOR * tracking_box[3])
             and (candidate_tracking_box[2] < ALLOWED_DIM_AUGMENTATION_FACTOR * tracking_box[2])
             and (candidate_tracking_box[3] < ALLOWED_DIM_AUGMENTATION_FACTOR * tracking_box[3])
-            and (candidate_tracking_box[2] * candidate_tracking_box[3] < ALLOWED_MAX_AREA)):
+            and (candidate_tracking_box[2] * candidate_tracking_box[3] < allowed_max_area)):
                 tracking_box = candidate_tracking_box
                 tracking_succeeded = True
             else:
@@ -179,18 +186,23 @@ def track_and_open_iris(camera, tracking_box, timer, iris_open_delay):
         # Draw the updated tracking box
         t_frame = frame.copy()
         
-        #debug
-        for box in intersecting_boxes:
-            colour = (0,255,0) if tracking_succeeded else (0,0,255)
-            cv2.rectangle(t_frame, (int(box[0]), int(box[1])), (int(box[0] + box[2]), int(box[1] + box[3])), colour, 2)
-        
+        if debug:
+            for box in intersecting_boxes:
+                colour = (0,255,0) if tracking_succeeded else (0,0,255)
+                cv2.rectangle(t_frame, (int(box[0]), int(box[1])), (int(box[0] + box[2]), int(box[1] + box[3])), colour, 2)
+            
         cv2.rectangle(t_frame, (int(tracking_box[0]), int(tracking_box[1])), (int(tracking_box[0] + tracking_box[2]), int(tracking_box[1] + tracking_box[3])), (255, 0, 0), 3)
         cv2.imshow('Tracking Box', t_frame)
+
+        if debug:
+            print("fps:", (1/(time.time()-iter_time)))
+
+        iter_time = time.time()
 
         # the 'q' button is set as the
         # quitting button you may use any
         # desired button of your choice
-        if cv2.waitKey(5) & 0xFF == ord('q'):
+        if cv2.waitKey(1) & 0xFF == ord('q'):
             break
 
     # Destroy all the windows
@@ -200,7 +212,6 @@ def track_and_open_iris(camera, tracking_box, timer, iris_open_delay):
 
 
 def validate(bbox, dims, uncertainty):
-    print(bbox, dims, uncertainty)
 
     height = dims[0]
     width = dims[1]
@@ -212,27 +223,32 @@ def validate(bbox, dims, uncertainty):
 
     x_center = (xmin+xmax)/2
     y_center = (ymin+ymax)/2
-    print(x_center, y_center)
 
-    if uncertainty > 30:
+    print("tracking result:", bbox, dims, uncertainty)
+    print("center of tracking box:", x_center, y_center)
+
+    if uncertainty > 15:
         if (ymin <= 5) or (y_center <= 0.25 * height):
             return False
         if (x_center <= 0.10 * width) or (x_center >= 0.90 * width):
             return False
-    elif uncertainty > 20:
+        
+    elif uncertainty > 8:
         if (ymin <= 0.05 * height) or (y_center <= 0.33 * height):
+            return False
+        if (x_center <= 0.15 * width) or (x_center >= 0.85 * width):
+            return False
+        
+    elif uncertainty > 3:
+        if (ymin <= 0.10 * height) or (y_center <= 0.45 * height):
             return False
         if (x_center <= 0.20 * width) or (x_center >= 0.80 * width):
             return False
-    elif uncertainty > 10:
-        if (ymin <= 0.10 * height) or (y_center <= 0.45 * height):
+        
+    else:
+        if (ymin <= 0.15 * height) or (y_center <= 0.50 * height):
             return False
         if (x_center <= 0.25 * width) or (x_center >= 0.75 * width):
-            return False
-    else:
-        if (ymin <= 0.25 * height) or (y_center <= 0.50 * height):
-            return False
-        if (x_center <= 0.30 * width) or (x_center >= 0.70 * width):
             return False
 
     return True
@@ -253,6 +269,7 @@ if __name__ == "__main__":
         sys.exit()
     # Select a bounding box
     bbox = cv2.selectROI(first_frame, False)
-    print(track_and_open_iris(camera, tracking_box=bbox, timer=100, iris_open_delay=2))
+    print(track_and_open_iris(camera, tracking_box=bbox, timer=100, iris_open_delay=2, debug=False))
     iris.close()
     camera.release()
+    iris.cleanup()
