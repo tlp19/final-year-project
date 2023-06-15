@@ -1,7 +1,6 @@
 import time
 import logging
 import cv2
-import RPi.GPIO as GPIO
 import src.colour_detection as colour_detection
 import src.motion_detection as motion_detection
 import src.qr_code as qr_code
