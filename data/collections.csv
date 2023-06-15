@@ -1,1 +1,4 @@
-timestamp,container_type,container_id
+timestamp,container_type,container_id,status
+1686854121.3466542,cup,8288f584-dd6f-490c-8137-2b85f49ff488,Collected
+1686854214.4021616,cup,8288f584-dd6f-490c-8137-2b85f49ff488,Collected
+1686854236.152383,cup,8288f584-dd6f-490c-8137-2b85f49ff488,Collected

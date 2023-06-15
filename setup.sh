@@ -25,11 +25,13 @@ python3 -m venv .venv
 source .venv/bin/activate
 pip3 install -r requirements.txt
 
-# Create a data folder and initialise a csv file with headers
-echo "Creating data folder and empty collections.csv..."
+# Create a data folder and initialise csv files with headers
+echo "Creating data folder and empty collections.csv and backlog.csv..."
 mkdir data
 touch data/collections.csv
-echo "timestamp,container_type,container_id" > data/collections.csv
+echo "timestamp,container_type,container_id,status" > data/collections.csv
+touch data/backlog.csv
+echo "timestamp,container_type,container_id" > data/backlog.csv
 
 # Deactivate the virtualenv
 deactivate

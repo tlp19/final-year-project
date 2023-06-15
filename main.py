@@ -9,7 +9,7 @@ import src.object_detection as object_detection
 import src.leds as leds
 import src.object_tracking as object_tracking
 import src.iris as iris
-import src.cauli_api as cauli_api
+import src.backend as backend
 
 
 SIDE_CAMERA_ID = 2
@@ -72,7 +72,7 @@ if __name__ == "__main__":
             
             # Validity checking: QR code verification
             cup = qr_code.process(code)
-            if not cauli_api.check_container(cup):
+            if not backend.check_container(cup):
                 print("QR code is not valid. Skipping.")
                 leds.blink((255,0,0), brightness=1, times=2, keep=True)
                 time.sleep(3)
@@ -102,7 +102,8 @@ if __name__ == "__main__":
             camera.release()
             iris.close()
             if (uncertainty is None) or (bbox is None):
-                print("Tracking failed. Collection is invalid.")
+                print("Tracking did not work. Collection is invalid.")
+                backend.record_collection(cup, status="Broken tracking")
                 leds.blink((255,100,0), brightness=1, times=3, keep=True)
                 time.sleep(3)
                 continue
@@ -111,6 +112,7 @@ if __name__ == "__main__":
             valid_tracking = object_tracking.validate(bbox, dims, uncertainty)
             if (valid_tracking is None) or (valid_tracking == False):
                 print("Object did not fall through the trapdoor. Collection is invalid.")
+                backend.record_collection(cup, status="Failed tracking")
                 leds.blink((255,100,0), brightness=1, times=3, keep=True)
                 time.sleep(3)
                 continue
@@ -119,16 +121,25 @@ if __name__ == "__main__":
             valid_weight = load_cells.check_empty_weight()
             if not valid_weight:
                 print("Weight is not valid. Collection is invalid.")
+                backend.record_collection(cup, status="Failed empty platform")
                 leds.blink((255,100,0), brightness=1, times=3, keep=True)
                 time.sleep(3)
                 continue
 
-            print("SUCCESS")
+            confirmation = backend.send_collection_confirmation(cup)
+            if not confirmation:
+                print("Failed to send collection confirmation.")
+                backend.record_collection(cup, status="Failed confirmation")
+                leds.blink((255,100,0), brightness=1, times=3, keep=True)
+                time.sleep(3)
+                continue
+            
+            print("SUCCESS!\n")
+            backend.record_collection(cup, status="Collected")
             leds.blink((0,255,0), brightness=1, times=3, keep=False)
 
-            #TODO: send collection message to Cauli API (keep in backlog if fails, sync at later collection)
             #TODO: add logging for maintainers
-            #FIXME: remove debug prints
+
 
     except KeyboardInterrupt:
         print(" Excited with KeyboardInterrupt. Cleaning up...")
