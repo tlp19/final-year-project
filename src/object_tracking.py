@@ -18,7 +18,7 @@ FRAGMENTED_BOX_OVERLAP_W_SEARCH = 0.75
 SEARCH_OVERLAP_W_BIG_MOTION = 0.85
 
 ALLOWED_DIM_REDUCTION_FACTOR = 0.6
-ALLOWED_DIM_AUGMENTATION_FACTOR = 2.5
+ALLOWED_DIM_AUGMENTATION_FACTOR = 3.0
 ALLOWED_MAX_SCREEN_PORTION = 0.80
 
 # Find the bounding box that encompasses all the bounding boxes
@@ -269,7 +269,7 @@ if __name__ == "__main__":
         sys.exit()
     # Select a bounding box
     bbox = cv2.selectROI(first_frame, False)
-    print(track_and_open_iris(camera, tracking_box=bbox, timer=100, iris_open_delay=2, debug=False))
+    print(track_and_open_iris(camera, tracking_box=bbox, timer=100, iris_open_delay=10, debug=True))
     iris.close()
     camera.release()
     iris.cleanup()
