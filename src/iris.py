@@ -2,9 +2,9 @@ import RPi.GPIO as GPIO
 import time
 
 
-DUTY_BRACKET = (1000, 1700)
-OPEN_DURATION = 1.5
-CLOSE_DURATION = 1.2
+DUTY_BRACKET = (950, 1700)
+OPEN_DURATION = 1.0
+CLOSE_DURATION = 1.0
 
 
 GPIO.setmode(GPIO.BCM)
@@ -56,26 +56,23 @@ def open_continuously():
 
 def stop(pwm):
     pwm.ChangeDutyCycle(duty_from_dir(0))
-    pwm.stop
+    pwm.stop()
 
+def cleanup():
+    GPIO.cleanup()
 
 
 if __name__ == "__main__":
     open()
-    time.sleep(2)
+    time.sleep(1.5)
     close()
 
-    # pwm.stop()
-
-    time.sleep(3)
-
-    # pwm.start(7)
-
-    # time.sleep(3)
-
-    open()
     time.sleep(2)
+
+    pwm = open_continuously()
+    time.sleep(OPEN_DURATION)
+    stop(pwm)
+    time.sleep(1.5)
     close()
 
-    # pwm.stop()
     GPIO.cleanup()

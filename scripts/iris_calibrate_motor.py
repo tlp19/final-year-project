@@ -1,6 +1,8 @@
 import RPi.GPIO as GPIO
 import time
 
+# DO NOT USE WHEN THE MOTOR IS ATTACHED TO THE IRIS
+
 GPIO.setmode(GPIO.BOARD)
 GPIO.setup(32, GPIO.OUT)
 
@@ -43,7 +45,7 @@ try:
     pwm.ChangeDutyCycle(duty_from_dir(0.25))
     time.sleep(0.2)
     pwm.ChangeDutyCycle(duty_from_dir(0))
-    time.sleep(1)
+    time.sleep(2)
     pwm.ChangeDutyCycle(duty_from_dir(-0.25))
     time.sleep(0.2)
     pwm.ChangeDutyCycle(duty_from_dir(-0.75))
