@@ -16,7 +16,7 @@ SIDE_CAMERA_ID = 2
 TOP_CAMERA_ID = 0
 
 
-def init_camera(camera_id, resolution=(640,480), fps=20, autofocus=False):
+def init_camera(camera_id, resolution=(640,480), fps=15, autofocus=False):
     # Define a video capture object (side camera)
     cam = cv2.VideoCapture(camera_id)
     cam.set(cv2.CAP_PROP_FRAME_WIDTH, resolution[0])
@@ -137,8 +137,6 @@ if __name__ == "__main__":
             print("SUCCESS!\n")
             backend.record_collection(cup, status="Collected")
             leds.blink((0,255,0), brightness=1, times=3, keep=False)
-
-            #TODO: add logging for maintainers
 
 
     except KeyboardInterrupt:
