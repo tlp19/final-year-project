@@ -110,7 +110,7 @@ if __name__ == "__main__":
 
             # Validity checking: Object detection
             logging.info(f"Starting object detection...")
-            camera = init_camera(SIDE_CAMERA_ID, resolution=(640,480), fps=30) # Re-initialise the main camera
+            camera = init_camera(SIDE_CAMERA_ID, resolution=(640,480), fps=20) # Re-initialise the main camera
             conf, cauli_bbox = object_detection.run(camera=camera, tries=10)
             if cauli_bbox is None:
                 print("No CauliCup was detected. Skipping.")
